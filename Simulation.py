@@ -18,7 +18,8 @@ class Simulation( ):
     b = 2000
     d = 10
 
-    back = 1
+    comBack = 0
+    envBack = pow( 10, -3 )/36
     q = 1.602176634*pow( 10, -19 )
         
     def gaussian( self, x ):
@@ -27,24 +28,41 @@ class Simulation( ):
     def P( self, x ):
         return (1/(1 + np.exp((x - self.b)/self.e)))*(1/(1 + np.exp(( self.b - self.d - x)/self.c)))
 
-    def createPeak( self ):        
+    def setBackground( self, string ):
+        if( string == "Underground" ):
+            self.envBack = pow( 10, -3 )/36
+        elif( string == "Surface" ):
+            self.envBack = 2/36
+
+    def setComBack( self ):
+        self.comBack = self.Reaction.Yield*self.Np*self.eff.effPeak( ( self.Q + self.energy )/1000, self.pos )*0.001
+
+    def setRange( self, intMin = 0, intMax = 0 ):
+        if( intMin == 0 and intMax == 0 ):
+            plotMin = self.Q + self.Reaction.getCM( self.energy ) - 200
+            plotMax = self.Q + self.Reaction.getCM( self.energy ) + 50
+            self.x = np.linspace( plotMin, plotMax, int( plotMax - plotMin ) )
+
+        else:
+            self.x = np.linspace( intMin, intMax, int( intMax - intMin ) )
+
+    def createPeak( self, time ):
+        gaus = np.fromiter( ( self.gaussian( x ) for x in range( int( -5*self.sigma ), int( 5*self.sigma ), 1 ) ), np.float )
         self.spectrum = np.zeros( len( self.x ) )
         for idx in range( len( self.x ) ):
             energyCM = self.x[idx] - self.Q
             energyLab = self.Reaction.getLab( energyCM )
+            stopCM = self.Reaction.getCM( self.Reaction.getValue( self.Reaction.stopGraph, energyLab ) )
             if( energyCM < 10 ):
-                self.spectrum[idx] = self.back
-            elif( self.x[idx] - self.b > 5 ):
-                self.spectrum[idx] = self.back
+                self.spectrum[idx] = self.envBack*time + self.comBack
+            elif( self.x[idx] - self.b > 10 ):
+                self.spectrum[idx] = self.envBack*time
+            elif( self.x[idx] > self.b - self.d/2 ):
+                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBack*time
             else:
-                stopCM = self.Reaction.getCM( self.Reaction.stopGraph.Eval( energyLab ) )
-                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.back
+                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBack*time + self.comBack
 
         self.spectrum = np.random.poisson( self.spectrum )
-
-        gaus = np.fromiter( ( self.gaussian( x )
-                              for x in range( int( -5*self.sigma ), int( 5*self.sigma ), 1 ) ), np.float )
-
         self.spectrum = np.convolve( self.spectrum, gaus, mode="same" )
         for idx in range( len( self.spectrum ) ):
             self.spectrum[idx] = int( self.spectrum[idx] )
@@ -61,6 +79,7 @@ class Simulation( ):
         for idx in range( 200 ):
             self.effPlot[idx][0] = 0.1*idx + 0.1
             self.effPlot[idx][1] = self.eff.effPeak( energy/1000, 0.1*idx + 0.1 )
+            
     def getProfile( self ):
         self.profilePlot = np.zeros( shape=( len( self.x ), 2 ) )
         for idx in range( len( self.x ) ):
@@ -69,7 +88,7 @@ class Simulation( ):
             if( energyCM < 10 ):
                 self.profilePlot[idx][0] = self.x[idx]
                 self.profilePlot[idx][1] = 0
-            elif( self.x[idx] - self.b > 5 ):
+            elif( self.x[idx] - self.b > 10 ):
                 self.profilePlot[idx][0] = self.x[idx]
                 self.profilePlot[idx][1] = 0
             else:
@@ -96,17 +115,17 @@ class Simulation( ):
             self.deltaE = deltaE
             fRunReaction = True
 
-        self.d = self.Reaction.getCM( deltaE )*self.Reaction.stopGraph.Eval( self.energy )/self.Reaction.stopGraph.Eval( 380 )
-
+        self.d = self.Reaction.convertDeltaE( self.deltaE, self.energy ) 
+        self.Np = time*current*pow( 10, -6 )/self.q
+        
         if( fRunEff ):
             self.eff.run( self.pos )
 
         if( fRunReaction ):
-            self.Reaction.run( deltaE, self.energy )
+            self.Reaction.run( self.deltaE, self.energy )
 
-        plotMin = self.Q + self.Reaction.getCM( self.energy ) - 200
-        plotMax = self.Q + self.Reaction.getCM( self.energy ) + 50
-        self.x = np.linspace( plotMin, plotMax, int( plotMax - plotMin ) )
-        self.Np = time*current*pow( 10, -6 )/self.q
-        self.createPeak( )
+        self.setRange( )
+        self.setComBack( )
+
+        self.createPeak( time )
         self.getProfile( )
