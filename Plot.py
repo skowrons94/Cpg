@@ -1,10 +1,7 @@
-import sys  
-import matplotlib.pyplot as plt
+ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 from Simulation import *
-
-!{sys.executable} -m pip install --user SciencePlots
 
 plt.style.use(['science', 'notebook', 'grid'])
 
