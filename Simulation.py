@@ -5,6 +5,8 @@ import numpy as np
 from Reaction import *
 from Efficiency import *
 
+np.seterr( all="ignore" )
+
 class Simulation( ):
     def __init__( self ):
         self.Q = 1943.5
