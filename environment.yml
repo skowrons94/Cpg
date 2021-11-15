@@ -6,5 +6,5 @@ dependencies:
   - numpy=1.17.4
   - pip
   - pip:
-    - matplotlib=3.1.2
-    - SciencePlots=1.0.7
+    - matplotlib
+    - SciencePlots
