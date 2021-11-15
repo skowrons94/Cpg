@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 
 from Reaction import *
@@ -11,6 +13,7 @@ class Simulation( ):
         self.deltaE = 0
         self.pos = 0
         self.eff = Efficiency( )
+        self.getBack( )
         self.Reaction = Reaction( )
 
     e = 0.3
@@ -21,6 +24,14 @@ class Simulation( ):
     comBack = 0
     envBack = pow( 10, -3 )/36
     q = 1.602176634*pow( 10, -19 )
+
+    def getBack( self ):
+        with open( "./data/SurfaceUnshielded.pkl", "rb" ) as f:
+            self.surfaUnshield = pickle.load( f )
+        with open( "./data/UndergroundUnshielded.pkl", "rb" ) as f:
+            self.underUnshield = pickle.load( f )
+        with open( "./data/UndergroundShielded.pkl", "rb" ) as f:
+            self.underShielded = pickle.load( f )
         
     def gaussian( self, x ):
         return 1./np.sqrt( 2. * np.pi * self.sigma*self.sigma ) * np.exp( -x**2 / ( self.sigma*self.sigma*2 ) )
@@ -29,10 +40,15 @@ class Simulation( ):
         return (1/(1 + np.exp((x - self.b)/self.e)))*(1/(1 + np.exp(( self.b - self.d - x)/self.c)))
 
     def setBackground( self, string ):
-        if( string == "Underground" ):
-            self.envBack = pow( 10, -3 )/36
-        elif( string == "Surface" ):
-            self.envBack = 2/36
+        if( string == "Underground Unshielded" ):
+            self.envBackX = self.underUnshield["x"]
+            self.envBackY = self.underUnshield["y"]
+        elif( string == "Underground Shielded" ):
+            self.envBackX = self.underShielded["x"]
+            self.envBackY = self.underShielded["y"]
+        elif( string == "Surface Unshielded" ):
+            self.envBackX = self.surfaUnshield["x"]
+            self.envBackY = self.surfaUnshield["y"]
 
     def setComBack( self ):
         self.comBack = self.Reaction.Yield*self.Np*self.eff.effPeak( ( self.Q + self.energy )/1000, self.pos )*0.001
@@ -53,15 +69,28 @@ class Simulation( ):
             energyCM = self.x[idx] - self.Q
             energyLab = self.Reaction.getLab( energyCM )
             stopCM = self.Reaction.getCM( self.Reaction.getValue( self.Reaction.stopGraph, energyLab ) )
-            if( energyCM < 10 ):
-                self.spectrum[idx] = self.envBack*time + self.comBack
-            elif( self.x[idx] - self.b > 10 ):
-                self.spectrum[idx] = self.envBack*time
-            elif( self.x[idx] > self.b - self.d/2 ):
-                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBack*time
-            else:
-                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBack*time + self.comBack
 
+            if( self.x[idx] < self.b + 10 ):
+                self.roiMax = idx
+                
+            if( energyCM < 10 ):
+                idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
+                self.spectrum[idx] = self.envBackY[idxBack]*time + self.comBack
+
+            elif( self.x[idx] - self.b > 10 ):
+                idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
+                self.spectrum[idx] = self.envBackY[idxBack]*time
+
+            elif( self.x[idx] > self.b - self.d/2 ):
+                idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
+                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBackY[idxBack]*time
+
+            else:
+                idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
+                if( self.P( self.x[idx] ) < 1e-5 ):
+                    self.roiMin = idx
+                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBackY[idxBack]*time + self.comBack
+                
         self.spectrum = np.random.poisson( self.spectrum )
         self.spectrum = np.convolve( self.spectrum, gaus, mode="same" )
         for idx in range( len( self.spectrum ) ):
