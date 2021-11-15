@@ -73,3 +73,4 @@ def createPlot( sim, energy, deltaE, position, current,
     ax4.tick_params( axis = 'both', which = 'major', labelsize=13 )
 
     plt.tight_layout( )
+    plt.show( )
