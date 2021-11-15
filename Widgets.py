@@ -1,9 +1,7 @@
-from Plot import *
-from ipywidgets import *
+from ipywidgets import widgets, VBox, HBox, Layout, interactive_output
 
-style = {'description_width': 'initial'}
-
-def createWidgets( ):
+def createWidgets( run ):
+    style = {'description_width': 'initial'}
 
     energy = widgets.FloatSlider(value=380.0, min=10, max=600, step=1, 
                                  continuous_update=False, 
@@ -48,7 +46,7 @@ def createWidgets( ):
     right_box = VBox([background])
     ui = HBox([left_box, right_box], layout=layout)
 
-    w = interactive_output(Plot,
+    w = interactive_output(run,
                            { 
                                "energy":energy,
                                "deltaE":deltaE,

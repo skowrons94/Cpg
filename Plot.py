@@ -1,7 +1,6 @@
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-
-from Simulation import *
 
 plt.style.use(['science', 'notebook', 'grid'])
 
@@ -9,8 +8,6 @@ plt.rcParams['figure.figsize'] = [12, 12]
 
 plt.rc('xtick', labelsize=20)
 plt.rc('ytick', labelsize=20)
-
-sim = Simulation( )
 
 def findRange( array, value1, value2 ):
     idx1 = (np.abs(array[:,0] - value1)).argmin()
@@ -21,12 +18,8 @@ def findMarker( array, value ):
     idx = (np.abs(array[:,0] - value)).argmin()
     return [value, array[idx][1]]
 
-def Plot( energy = 380, deltaE = 15, position = 1.35, current = 400, time = 2,
-          background = 'Underground' ):
-    
-    time *= 60
-    sim.setBackground( background )
-    sim.run( energy, deltaE, position, current, time )
+def createPlot( sim, energy, deltaE, position, current,
+                time, background = 'Underground' ):
     
     gs = gridspec.GridSpec(2, 3,height_ratios=[0.7,2])
     ax2 = plt.subplot( gs[0] )
