@@ -2,8 +2,8 @@ import pickle
 
 import numpy as np
 
-from Reaction import *
-from Efficiency import *
+from Reaction import Reaction
+from Efficiency import Efficiency
 
 np.seterr( all="ignore" )
 
