@@ -8,9 +8,9 @@ def createWidgets( run ):
                                  description='Beam energy (keV):', 
                                  style=style)
     
-    deltaE = widgets.FloatSlider(value=15.0, min=1, max=200, step=1, 
+    deltaE = widgets.FloatSlider(value=150, min=10, max=5000, step=10, 
                                  continuous_update=False, 
-                                 description='Target thickness (keV):',
+                                 description='Target thickness (nm):',
                                  style=style)
     
     position = widgets.FloatSlider(value=1.35, min=0.1, max=20, step=0.01, 
@@ -18,15 +18,20 @@ def createWidgets( run ):
                                    description='Detector distance (cm):',
                                    style=style)
                   
-    current = widgets.FloatSlider(value=400.0, min=1, max=600, step=1, 
+    current = widgets.FloatSlider(value=100.0, min=0, max=500, step=1, 
                                   continuous_update=False, 
                                   description='Beam current ($\mu$A):',
                                   style=style)
 
-    time = widgets.FloatSlider(value=2, min=1, max=4320, step=1, 
+    time = widgets.FloatSlider(value=2, min=2, max=4320, step=1, 
                                continuous_update=False, 
                                description='Acquisition time (min):',
                                style=style)
+
+    sigma = widgets.FloatSlider(value=3, min=2, max=40, step=0.1, 
+                                continuous_update=False, 
+                                description='Detector $\sigma$ (keV):',
+                                style=style)
                    
     background = widgets.Select(options=['Underground Shielded',
                                          'Underground Unshielded',
@@ -35,15 +40,21 @@ def createWidgets( run ):
                                 description='Background:',
                                 disabled=False)
 
+    scale = widgets.Select(options=['Linear',
+                                    'Log'],
+                           value='Linear',
+                           description='Scale:',
+                           disabled=False)
+
     layout = Layout(border='2px solid grey',
-                    width='940px',
+                    width='1050px',
                     height='',
                     flex_flow='row',
                     display='flex',
                     justify_content = 'center')
 
-    left_box = VBox([energy, deltaE, position, current, time])
-    right_box = VBox([background])
+    left_box = VBox([energy, deltaE, position, current, time, sigma])
+    right_box = VBox([background, scale])
 
     ui = HBox([left_box, right_box], layout=layout)
     w = interactive_output(run,
@@ -54,6 +65,8 @@ def createWidgets( run ):
                                "current":current,
                                "time":time,
                                "background":background,
+                               "scale":scale,
+                               "sigma":sigma
                            })
 
     return ui, w

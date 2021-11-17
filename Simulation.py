@@ -2,6 +2,9 @@ import pickle
 
 import numpy as np
 
+from scipy import signal
+
+from Edge import Edge
 from Reaction import Reaction
 from Efficiency import Efficiency
 
@@ -9,7 +12,6 @@ np.seterr( all="ignore" )
 
 class Simulation( ):
     def __init__( self ):
-        self.Q = 1943.5
         self.sigma = 3
         self.energy = 0
         self.deltaE = 0
@@ -18,14 +20,14 @@ class Simulation( ):
         self.getBack( )
         self.Reaction = Reaction( )
 
+    Q = 1943.5
+
+    q = 1.602176634*pow( 10, -19 )
+        
     e = 0.3
     c = 0.5
     b = 2000
     d = 10
-
-    comBack = 0
-    envBack = pow( 10, -3 )/36
-    q = 1.602176634*pow( 10, -19 )
 
     def getBack( self ):
         with open( "./data/SurfaceUnshielded.pkl", "rb" ) as f:
@@ -35,8 +37,8 @@ class Simulation( ):
         with open( "./data/UndergroundShielded.pkl", "rb" ) as f:
             self.underShielded = pickle.load( f )
         
-    def gaussian( self, x ):
-        return 1./np.sqrt( 2. * np.pi * self.sigma*self.sigma ) * np.exp( -x**2 / ( self.sigma*self.sigma*2 ) )
+    def gaussian( self, x, sigma ):
+        return 1./np.sqrt( 2. * np.pi * sigma*sigma ) * np.exp( -x**2 / ( sigma*sigma*2 ) )
 
     def P( self, x ):
         return (1/(1 + np.exp((x - self.b)/self.e)))*(1/(1 + np.exp(( self.b - self.d - x)/self.c)))
@@ -52,51 +54,75 @@ class Simulation( ):
             self.envBackX = self.surfaUnshield["x"]
             self.envBackY = self.surfaUnshield["y"]
 
+    def setSigma( self, sigma ):
+        self.sigma = sigma
+
     def setComBack( self ):
-        self.comBack = self.Reaction.Yield*self.Np*self.eff.effPeak( ( self.Q + self.energy )/1000, self.pos )*0.001
+        E_g = self.Q + self.energy
+        self.compEdge = 2*pow( E_g, 2 )/( 2*E_g + 511 )
+        ratio = self.eff.effPeak( ( self.Q + self.energy )/1000, self.pos )/self.eff.effTot( ( self.Q + self.energy )/1000, self.pos )/E_g
+        self.comBack = self.Reaction.Yield*self.Np*self.eff.effPeak( ( self.Q + self.energy )/1000, self.pos )*ratio
 
-    def setRange( self, intMin = 0, intMax = 0 ):
-        if( intMin == 0 and intMax == 0 ):
-            plotMin = self.Q + self.Reaction.getCM( self.energy ) - 200
-            plotMax = self.Q + self.Reaction.getCM( self.energy ) + 50
-            self.x = np.linspace( plotMin, plotMax, int( plotMax - plotMin ) )
-
-        else:
-            self.x = np.linspace( intMin, intMax, int( intMax - intMin ) )
-
+    def getCompton( self ):
+        self.spectrumComp = np.zeros( len( self.x ) )
+        for idx in range( len( self.x ) ):
+            if( self.x[idx] > self.Q + self.energy ):
+                self.spectrumComp[idx] = 0
+            elif( self.x[idx] < 50 ):
+                self.spectrumComp[idx] = 0
+            elif( self.x[idx] > self.compEdge - 50 ):
+                self.spectrumComp[idx] = self.comBack*self.eff.effPeak( self.x[idx]/1000, self.pos )*Edge( self.x[idx], self.compEdge + 30, 30 )
+            else:
+                self.spectrumComp[idx] = self.comBack*self.eff.effPeak( self.x[idx]/1000, self.pos )
+                
+        
     def createPeak( self, time ):
-        gaus = np.fromiter( ( self.gaussian( x ) for x in range( int( -5*self.sigma ), int( 5*self.sigma ), 1 ) ), np.float )
+        self.x = np.linspace( 0, 6000, 6000 )
         self.spectrum = np.zeros( len( self.x ) )
+        self.spectrumBack = np.zeros( len( self.x ) )
+
+        gaus = np.fromiter( ( self.gaussian( x, self.sigma ) for x in range( int( -5*self.sigma ), int( 5*self.sigma ), 1 ) ), np.float )
+
         for idx in range( len( self.x ) ):
             energyCM = self.x[idx] - self.Q
             energyLab = self.Reaction.getLab( energyCM )
             stopCM = self.Reaction.getCM( self.Reaction.getValue( self.Reaction.stopGraph, energyLab ) )
-
-            if( self.x[idx] < self.b + 10 ):
-                self.roiMax = idx
-                
+            
             if( energyCM < 10 ):
                 idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
-                self.spectrum[idx] = self.envBackY[idxBack]*time + self.comBack
+                self.spectrumBack[idx] = self.envBackY[idxBack]*time
 
             elif( self.x[idx] - self.b > 10 ):
                 idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
-                self.spectrum[idx] = self.envBackY[idxBack]*time
+                self.spectrumBack[idx] = self.envBackY[idxBack]*time
 
             elif( self.x[idx] > self.b - self.d/2 ):
                 idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
-                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBackY[idxBack]*time
+                self.spectrumBack[idx] = self.envBackY[idxBack]*time
+                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM
 
             else:
                 idxBack = np.abs( self.envBackX - self.x[idx] ).argmin( )
-                if( self.P( self.x[idx] ) < 1e-5 ):
-                    self.roiMin = idx
-                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM + self.envBackY[idxBack]*time + self.comBack
+                self.spectrumBack[idx] = self.envBackY[idxBack]*time
+                self.spectrum[idx] = self.P(self.x[idx])*self.Reaction.getCross( energyLab )*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Np/stopCM
+
+        self.getCompton( )
                 
         self.spectrum = np.random.poisson( self.spectrum )
+        self.spectrumBack = np.random.poisson( self.spectrumBack )
+        self.spectrumComp = np.random.poisson( self.spectrumComp )
+
         self.spectrum = np.convolve( self.spectrum, gaus, mode="same" )
+        self.spectrumComp = np.convolve( self.spectrumComp, gaus, mode="same" )
+
+        if( self.sigma > 2 ):
+            gausBack = np.fromiter( ( self.gaussian( x, self.sigma - 2 ) for x in range( int( -5*self.sigma ), int( 5*self.sigma ), 1 ) ), np.float )
+            self.spectrumBack = np.convolve( self.spectrumBack, gausBack,
+                                             mode="same" )
+
         for idx in range( len( self.spectrum ) ):
             self.spectrum[idx] = int( self.spectrum[idx] )
+            self.spectrumBack[idx] = int( self.spectrumComp[idx] + self.spectrumBack[idx] )            
 
     def getCross( self ):
         self.crossPlot = np.zeros( shape=[590,2] )
@@ -125,9 +151,12 @@ class Simulation( ):
             else:
                 self.profilePlot[idx][0] = self.x[idx]
                 self.profilePlot[idx][1] = self.P( self.x[idx] )
-            
 
-    def run( self, energy, deltaE, pos, current, time ):
+    def convertDeltaE( self, deltaE ):
+        conv = self.Reaction.getValue( self.Reaction.stopGraphUM, self.energy )
+        return deltaE*conv
+        
+    def run( self, energy, deltaEUM, pos, current, time ):
         fRunEff = False
         fRunReaction = False
         
@@ -142,9 +171,11 @@ class Simulation( ):
             self.getCross( )
             fRunReaction = True
             
-        if( self.deltaE != deltaE ):
-            self.deltaE = deltaE
-            fRunReaction = True
+        deltaE = self.convertDeltaE( deltaEUM )
+        if( deltaE > energy ):
+            deltaE = energy
+        self.deltaE = deltaE
+        fRunReaction = True
 
         self.d = self.Reaction.convertDeltaE( self.deltaE, self.energy ) 
         self.Np = time*current*pow( 10, -6 )/self.q
@@ -155,7 +186,6 @@ class Simulation( ):
         if( fRunReaction ):
             self.Reaction.run( self.deltaE, self.energy )
 
-        self.setRange( )
         self.setComBack( )
 
         self.createPeak( time )

@@ -4,12 +4,15 @@ import matplotlib.pyplot as plt
 class Reaction( ):
     def __init__( self ):
         self.stop = self.readStop( )
+        self.stopUM = self.readStopUM( )
         self.sFactor = self.readSfactor( )
         self.sFactorGraph = self.createGraph( self.sFactor )
         self.stopGraph = self.createGraph( self.stop )
+        self.stopGraphUM = self.createGraph( self.stopUM )
 
     M0 = 12
     M1 = 1.00727647
+    Z = 6
 
     def readSfactor( self ):
         dataDir = "./data/sfactor.dat"
@@ -27,6 +30,20 @@ class Reaction( ):
 
     def readStop( self ):
         dataDir = "./data/c12.dat"
+
+        fIn = open( dataDir, "r" )
+        Lines = fIn.readlines( )
+        
+        stop = np.zeros( shape=( len( Lines ), 2 ) )
+        for idx in range( len( Lines ) ):
+            l = Lines[idx].split( )
+            stop[idx][0] = float( l[0] )
+            stop[idx][1] = float( l[1] )
+
+        return stop
+
+    def readStopUM( self ):
+        dataDir = "./data/c12_um.dat"
 
         fIn = open( dataDir, "r" )
         Lines = fIn.readlines( )
@@ -62,7 +79,7 @@ class Reaction( ):
         energyCM = self.getCM( energy )
         Mr = self.M0*self.M1/( self.M0 + self.M1 )
         sFactor = self.getValue( self.sFactorGraph, energyCM )
-        cross = pow(10, -6)*sFactor*np.exp( -0.989534*6*np.sqrt( Mr/( energyCM/1000 ) ) )
+        cross = pow(10, -6)*sFactor*np.exp( -0.989534*self.Z*np.sqrt( Mr/( energyCM/1000 ) ) )
         cross /= energyCM
         return cross
 
@@ -77,7 +94,7 @@ class Reaction( ):
         
         integral = 0
         for idx in range( nSteps ):
-            stop = 0.99*self.getValue( self.stopGraph, EStep )
+            stop = self.getValue( self.stopGraph, EStep )
             stopCM = self.getCM( stop )
             cross = self.getCross( EStep )
             integral += step*cross/stopCM
