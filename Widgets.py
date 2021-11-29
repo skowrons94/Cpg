@@ -23,7 +23,7 @@ def createWidgets( run ):
                                   description='Beam current ($\mu$A):',
                                   style=style)
 
-    time = widgets.FloatSlider(value=2, min=2, max=4320, step=1, 
+    time = widgets.FloatSlider(value=120, min=2, max=4320, step=1, 
                                continuous_update=False, 
                                description='Acquisition time (min):',
                                style=style)
@@ -43,7 +43,7 @@ def createWidgets( run ):
     scale = widgets.Select(options=['Linear',
                                     'Log'],
                            value='Linear',
-                           description='Scale:',
+                           description='Plot Scale:',
                            disabled=False)
 
     layout = Layout(border='2px solid grey',
