@@ -12,7 +12,7 @@ def getProfile( sim, energy, deltaE ):
     y = [ ]
     for i in range( len( sim.profilePlot ) ):
         data = sim.profilePlot[i,0] - sim.Q - sim.Reaction.getCM( energy ) + energy
-        if( ( data > energy - deltaE - 10 ) and ( data < energy + 10 ) ):
+        if( ( data > energy - deltaE - 30 ) and ( data < energy + 10 ) ):
             x.append( data )
             y.append( sim.profilePlot[i,1] )
 
@@ -49,6 +49,7 @@ def createPlot( sim, energy, deltaE, position, scale ):
     ax1.set_ylabel( "Counts", fontsize=20, horizontalalignment='right', y=1.0 )
     if( scale == "Log" ):
         ax1.set_yscale( "log" )
+        ax1.set_ylim( bottom=1e-2 )
     else:
         ax1.set_yscale( "linear" )
         ax1.set_ylim( bottom=0 )
