@@ -28,10 +28,10 @@ def createWidgets( run ):
                                description='Acquisition time (min):',
                                style=style)
 
-    sigma = widgets.FloatSlider(value=3, min=2, max=40, step=0.1, 
-                                continuous_update=False, 
-                                description='Detector $\sigma$ (keV):',
-                                style=style)
+    #sigma = widgets.FloatSlider(value=3, min=2, max=40, step=0.1, 
+    #                            continuous_update=False, 
+    #                            description='Detector $\sigma$ (keV):',
+    #                            style=style)
                    
     background = widgets.Select(options=['Underground Shielded',
                                          'Underground Unshielded',
@@ -53,7 +53,7 @@ def createWidgets( run ):
                     display='flex',
                     justify_content = 'center')
 
-    left_box = VBox([energy, deltaE, position, current, time, sigma])
+    left_box = VBox([energy, deltaE, position, current, time])
     right_box = VBox([background, scale])
 
     ui = HBox([left_box, right_box], layout=layout)
@@ -65,8 +65,7 @@ def createWidgets( run ):
                                "current":current,
                                "time":time,
                                "background":background,
-                               "scale":scale,
-                               "sigma":sigma
+                               "scale":scale
                            })
 
     return ui, w

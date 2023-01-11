@@ -1,0 +1,17 @@
+.ipynb_checkpoints/cpg_ROOT-checkpoint.ipynb
+.ipynb_checkpoints/cpg-checkpoint.ipynb
+__pycache__/Edge.cpython-38.pyc
+__pycache__/Edge.cpython-310.pyc
+__pycache__/Efficiency.cpython-38.pyc
+__pycache__/Efficiency.cpython-310.pyc
+__pycache__/main.cpython-38.pyc
+__pycache__/Plot.cpython-38.pyc
+__pycache__/Plot.cpython-310.pyc
+__pycache__/Reaction.cpython-38.pyc
+__pycache__/Reaction.cpython-310.pyc
+__pycache__/Simulation.cpython-38.pyc
+__pycache__/Simulation.cpython-310.pyc
+__pycache__/Simulation.cpython-311.pyc
+__pycache__/Widgets.cpython-38.pyc
+__pycache__/Widgets.cpython-310.pyc
+.DS_Store

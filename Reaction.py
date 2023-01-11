@@ -3,58 +3,26 @@ import matplotlib.pyplot as plt
 
 class Reaction( ):
     def __init__( self ):
-        self.stop = self.readStop( )
-        self.stopUM = self.readStopUM( )
-        self.sFactor = self.readSfactor( )
+        self.stop         = self.readData( "data/c12.dat"     )
+        self.stopUM       = self.readData( "data/c12_um.dat"  )
+        self.sFactor      = self.readData( "data/sfactor.dat" )
         self.sFactorGraph = self.createGraph( self.sFactor )
-        self.stopGraph = self.createGraph( self.stop )
-        self.stopGraphUM = self.createGraph( self.stopUM )
+        self.stopGraph    = self.createGraph( self.stop    )
+        self.stopGraphUM  = self.createGraph( self.stopUM  )
 
     M0 = 12
     M1 = 1.00727647
     Z = 6
 
-    def readSfactor( self ):
-        dataDir = "./data/sfactor.dat"
-
+    def readData( self, dataDir ):
         fIn = open( dataDir, "r" )
         Lines = fIn.readlines( )
-        
-        sFactor = np.zeros( shape=( len( Lines ), 3 ) )
+        data = np.zeros( shape=( len( Lines ), 3 ) )
         for idx in range( len( Lines ) ):
             l = Lines[idx].split( )
-            sFactor[idx][0] = float( l[0] )
-            sFactor[idx][1] = float( l[1] )
-
-        return sFactor
-
-    def readStop( self ):
-        dataDir = "./data/c12.dat"
-
-        fIn = open( dataDir, "r" )
-        Lines = fIn.readlines( )
-        
-        stop = np.zeros( shape=( len( Lines ), 2 ) )
-        for idx in range( len( Lines ) ):
-            l = Lines[idx].split( )
-            stop[idx][0] = float( l[0] )
-            stop[idx][1] = float( l[1] )
-
-        return stop
-
-    def readStopUM( self ):
-        dataDir = "./data/c12_um.dat"
-
-        fIn = open( dataDir, "r" )
-        Lines = fIn.readlines( )
-        
-        stop = np.zeros( shape=( len( Lines ), 2 ) )
-        for idx in range( len( Lines ) ):
-            l = Lines[idx].split( )
-            stop[idx][0] = float( l[0] )
-            stop[idx][1] = float( l[1] )
-
-        return stop
+            data[idx][0] = float( l[0] )
+            data[idx][1] = float( l[1] )
+        return data
 
     def createGraph( self, data ):
         fig = plt.figure( )
@@ -64,8 +32,7 @@ class Reaction( ):
 
     def getValue( self, graph, value ):
         idx = (np.abs(graph[0] - value)).argmin()
-        return graph[1][idx]
-        
+        return graph[1][idx]       
 
     def getCM( self, Lab ):
         CM = Lab*( self.M0 )/( self.M1 + self.M0 )
@@ -76,29 +43,28 @@ class Reaction( ):
         return Lab
 
     def getCross( self, energy ):
-        energyCM = self.getCM( energy )
-        Mr = self.M0*self.M1/( self.M0 + self.M1 )
-        sFactor = self.getValue( self.sFactorGraph, energyCM )
-        cross = pow(10, -6)*sFactor*np.exp( -0.989534*self.Z*np.sqrt( Mr/( energyCM/1000 ) ) )
-        cross /= energyCM
+        energyCM  = self.getCM( energy )
+        Mr        = self.M0*self.M1/( self.M0 + self.M1 )
+        sFactor   = self.getValue( self.sFactorGraph, energyCM )
+        cross     = pow(10, -6)*sFactor*np.exp( -0.989534*self.Z*np.sqrt( Mr/( energyCM/1000 ) ) )
+        cross    /= energyCM
         return cross
 
     def convertDeltaE( self, deltaE, energy ):
         return deltaE*self.getValue( self.stopGraph, energy )/self.getValue( self.stopGraph, 380 )
 
     def run( self, deltaE, energy ):
-        nSteps = 1000
-        step = deltaE/nSteps
-        EStep = energy - deltaE + step/2
-        deltaE = self.convertDeltaE( deltaE, energy )
-        
         integral = 0
+        nSteps   = 1000
+        step     = deltaE/nSteps
+        EStep    = energy - deltaE + step/2
+        deltaE   = self.convertDeltaE( deltaE, energy )        
         for idx in range( nSteps ):
-            stop = self.getValue( self.stopGraph, EStep )
-            stopCM = self.getCM( stop )
-            cross = self.getCross( EStep )
-            integral += step*cross/stopCM
-            EStep += step
-
+            stop      = self.getValue( self.stopGraph, EStep )
+            stopCM    = self.getCM( stop )
+            stepCM    = self.getCM( step )
+            cross     = self.getCross( EStep )
+            integral += stepCM*cross/stopCM
+            EStep    += step
         self.Yield = integral
         

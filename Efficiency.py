@@ -16,15 +16,13 @@ class Efficiency( ):
         return self.effPeak( pos, energy )*exp( self.params['k1'] + self.params['k2']*np.log( energy ) + self.params['k3']*( np.log( energy ) )**2 )
 
     def readParams( self ):
-        dataDir = "./data/eff_params.dat"
+        dataDir = "data/eff_params.dat"
         fIn = open( dataDir, "r" )
         Lines = fIn.readlines( )
-
         params = { }
         for line in Lines:
             l = line.split( )
             params[l[0]] = float( l[1] )
-
         fIn.close( )
         return params
 

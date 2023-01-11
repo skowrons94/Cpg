@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-plt.style.use(['science', 'notebook', 'grid'])
-
 plt.rc('xtick', labelsize=20)
 plt.rc('ytick', labelsize=20)
 
@@ -77,9 +75,9 @@ def createPlot( sim, energy, deltaE, position, scale ):
     xP, yP = getProfile( sim, energy, deltaE ) 
     
     ax4.plot( xP, yP )
-    ax4.set_xlabel( "Beam energy (keV)", fontsize=13,
+    ax4.set_xlabel( "Beam Energy (keV)", fontsize=13,
                     horizontalalignment='right', x=1.0 )
-    ax4.set_ylabel( "Target", fontsize=13, horizontalalignment='right', y=1.0 )
+    ax4.set_ylabel( "Target Profile", fontsize=13, horizontalalignment='right', y=1.0 )
     ax4.tick_params( axis = 'both', which = 'major', labelsize=13 )
 
 
