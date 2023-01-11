@@ -4,7 +4,6 @@ import numpy as np
 
 from scipy import signal
 
-from Edge import Edge
 from Reaction import Reaction
 from Efficiency import Efficiency
 
@@ -12,10 +11,10 @@ np.seterr( all="ignore" )
 
 class Simulation( ):
     def __init__( self ):
-        self.sigma    = 2
         self.energy   = 0
         self.deltaE   = 0
         self.pos      = 0
+        self.sigma    = 2
         self.eff      = Efficiency( )
         self.Reaction = Reaction( )
         self.getBack( )
@@ -37,6 +36,9 @@ class Simulation( ):
         with open( "./data/UndergroundShielded.pkl", "rb" ) as f:
             self.underShielded = pickle.load( f )
         
+    def Edge( self, x, b, a ):
+        return 1/( 1 + np.exp( ( x - b )/a ) )
+
     def gaussian( self, x, sigma ):
         return 1./np.sqrt( 2. * np.pi * sigma*sigma ) * np.exp( -x**2 / ( sigma*sigma*2 ) )
 
@@ -54,9 +56,6 @@ class Simulation( ):
             self.envBackX = self.surfaUnshield["x"]
             self.envBackY = self.surfaUnshield["y"]
 
-    def setSigma( self, sigma ):
-        self.sigma = sigma
-
     def setComBack( self ):
         E_g           = self.Q + self.energy
         self.compEdge = 2*pow( E_g, 2 )/( 2*E_g + 511 )
@@ -71,7 +70,7 @@ class Simulation( ):
             elif( self.x[idx] < 50 ):
                 self.spectrumComp[idx] = 0
             elif( self.x[idx] > self.compEdge - 50 ):
-                self.spectrumComp[idx] = self.comBack*self.eff.effPeak( self.x[idx]/1000, self.pos )*Edge( self.x[idx], self.compEdge + 30, 30 )
+                self.spectrumComp[idx] = self.comBack*self.eff.effPeak( self.x[idx]/1000, self.pos )*self.Edge( self.x[idx], self.compEdge + 30, 30 )
             else:
                 self.spectrumComp[idx] = self.comBack*self.eff.effPeak( self.x[idx]/1000, self.pos )               
         
@@ -115,10 +114,6 @@ class Simulation( ):
         self.spectrum     = np.convolve( self.spectrum,     gaus, mode="same" )
         self.spectrumComp = np.convolve( self.spectrumComp, gaus, mode="same" )
 
-#        if( self.sigma > 2 ):
-#            gausBack = np.fromiter( ( self.gaussian( x, self.sigma - 2 ) for x in range( int( -5*self.sigma ), int( 5*self.sigma ), 1 ) ), float )
-#            self.spectrumBack = np.convolve( self.spectrumBack, gausBack, mode="same" )
-
         for idx in range( len( self.spectrum ) ):
             self.spectrum[idx]     = int( self.spectrum[idx]                              )
             self.spectrumBack[idx] = int( self.spectrumComp[idx] + self.spectrumBack[idx] )            
@@ -134,7 +129,7 @@ class Simulation( ):
         self.effPlot = np.zeros( shape=[200,2] )
         for idx in range( 200 ):
             self.effPlot[idx][0] = 0.1*idx + 0.1
-            self.effPlot[idx][1] = self.eff.effPeak( energy/1000, 0.1*idx + 0.1 )
+            self.effPlot[idx][1] = 100*self.eff.effPeak( energy/1000, 0.1*idx + 0.1 )
             
     def getProfile( self ):
         self.profilePlot = np.zeros( shape=( len( self.x ), 2 ) )
